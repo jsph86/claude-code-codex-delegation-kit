@@ -1,0 +1,73 @@
+name: Bug report
+description: The wrapper, installer, or rule block didn't behave as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing. A couple of critical reminders before you paste anything:
+
+        **Scrub before posting.** Codex reports can contain file paths, code snippets, and the full prompt you sent. Before pasting logs, report files, or transcripts into this public issue, redact any proprietary paths, company names, customer data, or credentials.
+
+  - type: input
+    id: kit-version
+    attributes:
+      label: Kit version
+      description: Output of `cat ~/.claude/scripts/ask-codex.sh | grep KIT_VERSION=` or the marker in `~/.claude/CLAUDE.md`.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: codex-version
+    attributes:
+      label: Codex CLI version
+      description: Output of `codex --version`.
+      placeholder: "codex-cli 0.121.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Other (note in description)
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The minimal sequence of commands + prompts that produces the bug. Pseudonymize any identifiers.
+      placeholder: |
+        1. Ran `bash install.sh`
+        2. Opened a Claude Code session in a fresh repo
+        3. Prompted: "explore the <generic module name>"
+        4. Expected Claude to announce + dispatch Codex, but it used native Grep instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or report excerpts (redacted)
+      description: Paste only what is safe to publish. Do NOT paste full prompts or file paths that reveal proprietary structure.
+      render: text

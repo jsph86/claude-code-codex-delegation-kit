@@ -1,0 +1,18 @@
+# Installer backups
+*.bak.*
+
+# Reports from dogfooding this kit on itself
+.codex-reports/
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# bats test artifacts
+tests/tmp/
+tests/**/output

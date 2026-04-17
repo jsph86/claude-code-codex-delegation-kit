@@ -1,0 +1,40 @@
+name: Feature request
+description: Propose a non-mode-related enhancement to the kit.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For proposing a new Codex mode, use the "new mode proposal" template instead.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the gap in the current kit (with Claude Code + Codex CLI) that this proposal would fill.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What would the wrapper, installer, or rule do differently? Keep it in scope — this kit stays small and bash-only.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Scope constraints (the kit stays small)
+      options:
+        - label: My proposal does NOT add an npm / pip / go runtime dependency.
+        - label: My proposal does NOT turn the kit into a plugin framework or hook system.
+        - label: My proposal does NOT add telemetry or phone-home behavior.
+    validations:
+      required: true

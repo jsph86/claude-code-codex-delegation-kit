@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Lint bash
+        run: |
+          shellcheck install.sh
+          shellcheck bin/ask-codex.sh
+          shellcheck tests/fixtures/bin/codex
+
+  bats:
+    name: bats (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install bats (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y bats
+      - name: Install bats (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install bats-core
+      - name: Run tests
+        run: bats tests/
+
+  install-dry-run:
+    name: install --dry-run (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Put fake codex on PATH
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          cp tests/fixtures/bin/codex "$RUNNER_TEMP/bin/codex"
+          chmod +x "$RUNNER_TEMP/bin/codex"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Dry-run install
+        run: bash install.sh --dry-run

@@ -1,0 +1,58 @@
+name: New mode proposal
+description: Propose a new `--mode=...` for the wrapper.
+labels: ["enhancement", "mode-proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The four existing modes are intentionally mutually exclusive along their axis:
+
+        | Mode | Axis |
+        |---|---|
+        | `search` | find things |
+        | `analyze` | understand existing things |
+        | `second-opinion` | critique an existing plan or analysis |
+        | `consult` | propose independently |
+
+        If your proposed mode doesn't sit on a new axis, it's likely a variant of an existing mode and probably belongs as a preamble tweak rather than a new mode.
+
+  - type: input
+    id: mode-name
+    attributes:
+      label: Proposed mode name
+      placeholder: "--mode=<name>"
+    validations:
+      required: true
+
+  - type: textarea
+    id: axis
+    attributes:
+      label: What axis does this mode sit on?
+      description: Explain why this is fundamentally different from the four existing modes.
+    validations:
+      required: true
+
+  - type: textarea
+    id: preamble
+    attributes:
+      label: Draft preamble
+      description: The system-preamble text Codex would receive. Mirror the 4-7 section structure of the existing preambles.
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: triggers
+    attributes:
+      label: Trigger phrases
+      description: What phrases in a user prompt would map to this mode? Give at least 5 concrete examples.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example-use
+    attributes:
+      label: Example use case
+      description: A real prompt + what Claude Code should do with it.
+    validations:
+      required: true
