@@ -1,4 +1,4 @@
-<!-- CLAUDE-CODEX-KIT:BEGIN v1.0.0 -->
+<!-- CLAUDE-CODEX-KIT:BEGIN v1.1.0 -->
 ## Delegating to Codex -- PROACTIVE but BOUNDED
 
 Codex (`~/.claude/scripts/ask-codex.sh`) is a second read-only engine. Use it to save Claude's context on heavy search/exploration and to obtain independent perspectives for critical review or design — **not to avoid thinking.**

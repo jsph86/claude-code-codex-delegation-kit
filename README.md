@@ -3,7 +3,7 @@
 > Make Claude Code ask Codex before it burns tokens or commits to a plan.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](./CHANGELOG.md)
 [![CI](https://github.com/jsph86/claude-code-codex-delegation-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/jsph86/claude-code-codex-delegation-kit/actions/workflows/ci.yml)
 
 <!-- Demo: insert asciinema or GIF here after recording -->
@@ -203,7 +203,7 @@ bash ~/.claude/scripts/ask-codex.sh --check-model
 The installer uses a managed, versioned block in `~/.claude/CLAUDE.md`:
 
 ```markdown
-<!-- CLAUDE-CODEX-KIT:BEGIN v1.0.0 -->
+<!-- CLAUDE-CODEX-KIT:BEGIN v1.1.0 -->
 ... rule content ...
 <!-- CLAUDE-CODEX-KIT:END -->
 ```

@@ -30,7 +30,7 @@ teardown() {
   [ "$status" -eq 0 ]
   [ -x "$HOME/.claude/scripts/ask-codex.sh" ]
   [ -f "$HOME/.claude/CLAUDE.md" ]
-  grep -q "CLAUDE-CODEX-KIT:BEGIN v1.0.0" "$HOME/.claude/CLAUDE.md"
+  grep -q "CLAUDE-CODEX-KIT:BEGIN v1.1.0" "$HOME/.claude/CLAUDE.md"
   grep -q "CLAUDE-CODEX-KIT:END" "$HOME/.claude/CLAUDE.md"
 }
 
@@ -57,7 +57,7 @@ EOF
 
   run bash "$KIT_DIR/install.sh"
   [ "$status" -eq 0 ]
-  grep -q "CLAUDE-CODEX-KIT:BEGIN v1.0.0" "$HOME/.claude/CLAUDE.md"
+  grep -q "CLAUDE-CODEX-KIT:BEGIN v1.1.0" "$HOME/.claude/CLAUDE.md"
   ! grep -q "ancient kit contents" "$HOME/.claude/CLAUDE.md"
   grep -q "Some important user rule" "$HOME/.claude/CLAUDE.md"
   grep -q "User's own footer" "$HOME/.claude/CLAUDE.md"

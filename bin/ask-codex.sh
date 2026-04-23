@@ -36,7 +36,7 @@
 #   - Parallel invocations with the same slug do not collide (unique file-id)
 #   - Resolved model + reasoning stamped into the report header
 #
-# Part of the claude-code-codex-delegation-kit. https://github.com/<owner>/claude-code-codex-delegation-kit
+# Part of the claude-code-codex-delegation-kit. https://github.com/jsph86/claude-code-codex-delegation-kit
 
 set -euo pipefail
 
@@ -264,9 +264,12 @@ _on_signal() {
     fi
   } >> "${OUT_FILE:-/dev/null}" 2>/dev/null
 
-  # Stamp the sentinel so readers know the script was killed
-  sed -i '' 's/<!-- STATUS:RUNNING -->/<!-- STATUS:KILLED sig='"$sig"' -->/' \
-    "${OUT_FILE:-/dev/null}" 2>/dev/null
+  # Stamp the sentinel so readers know the script was killed (portable sed -i)
+  local _target="${OUT_FILE:-/dev/null}"
+  if [[ -f "$_target" ]]; then
+    sed 's/<!-- STATUS:RUNNING -->/<!-- STATUS:KILLED sig='"$sig"' -->/' "$_target" > "$_target.tmp" \
+      && mv "$_target.tmp" "$_target"
+  fi
 
   rm -f "${LAST_MSG:-}"
   echo "${OUT_FILE:-}"
@@ -416,7 +419,8 @@ if "${RUN[@]}" > "$LOG_FILE" 2>&1; then
       } >> "$OUT_FILE"
     fi
   fi
-  sed -i '' 's/<!-- STATUS:RUNNING -->/<!-- STATUS:COMPLETE -->/' "$OUT_FILE"
+  sed 's/<!-- STATUS:RUNNING -->/<!-- STATUS:COMPLETE -->/' "$OUT_FILE" > "$OUT_FILE.tmp" \
+    && mv "$OUT_FILE.tmp" "$OUT_FILE"
   echo "$OUT_FILE"
   exit 0
 else
@@ -437,7 +441,8 @@ else
       echo "_**Codex invocation failed** (exit $STATUS). Raw stderr/stdout preserved at \`$LOG_FILE\`._"
     fi
   } >> "$OUT_FILE"
-  sed -i '' 's/<!-- STATUS:RUNNING -->/<!-- STATUS:FAILED exit='"$STATUS"' -->/' "$OUT_FILE"
+  sed 's/<!-- STATUS:RUNNING -->/<!-- STATUS:FAILED exit='"$STATUS"' -->/' "$OUT_FILE" > "$OUT_FILE.tmp" \
+    && mv "$OUT_FILE.tmp" "$OUT_FILE"
   rm -f "$LAST_MSG"
   echo "$OUT_FILE"
   exit 3

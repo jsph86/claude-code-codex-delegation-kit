@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes yet. Proposals land here first; bumped into a versioned section at release time._
 
+## [1.1.0] - 2026-04-23
+
+### Fixed
+
+- **Empty Codex reports** — 23% of reports (15/65 in production) returned empty Response sections. Root cause: script killed by SIGHUP/SIGTERM before post-exec code could append content, or `--output-last-message` producing an empty file when Codex exhausted context on tool calls.
+
+### Added
+
+- **Signal trap** (SIGHUP/SIGINT/SIGTERM) — intercepts process kill and salvages partial content from the log or last-message temp file before dying. Previously the script died silently with only the report header written.
+- **Completion sentinel** — writes `<!-- STATUS:RUNNING -->` into the report header, replaced with `STATUS:COMPLETE`, `STATUS:FAILED exit=N`, or `STATUS:KILLED sig=X` on each exit path. Readers can now distinguish "still running" from "died without trace" from "finished normally."
+- **Three-tier response extraction** — when `--output-last-message` is empty, falls back to: (1) awk extraction of the last Codex text block from the raw log, then (2) jq extraction from the session JSONL at `~/.codex/sessions/`. Applied to both success and failure exit paths.
+
+### Changed
+
+- `sed -i` operations replaced with portable `sed + mv` pattern for Linux compatibility.
+- `<owner>` placeholder in script header replaced with actual GitHub username.
+
 ## [1.0.0] - 2026-04-17
 
 Initial public release.

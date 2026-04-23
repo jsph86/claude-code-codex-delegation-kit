@@ -25,10 +25,10 @@ teardown() {
   rm -rf "$TESTROOT"
 }
 
-@test "--version prints kit version 1.0.0" {
+@test "--version prints kit version 1.1.0" {
   run bash "$KIT_DIR/bin/ask-codex.sh" --version
   [ "$status" -eq 0 ]
-  [[ "$output" == *"1.0.0"* ]]
+  [[ "$output" == *"1.1.0"* ]]
 }
 
 @test "--check-model prints effective model and reasoning" {
