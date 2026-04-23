@@ -40,7 +40,7 @@
 
 set -euo pipefail
 
-KIT_VERSION="1.0.0"
+KIT_VERSION="1.1.0"
 
 CODEX_CONFIG="${CODEX_HOME:-$HOME/.codex}/config.toml"
 
@@ -207,6 +207,76 @@ OUT_FILE="$OUT_DIR/${FILE_ID}.md"
 LAST_MSG="$OUT_DIR/.${FILE_ID}.last.tmp"
 LOG_FILE="$OUT_DIR/.${FILE_ID}.log"
 
+# ---------------------------------------------------------------------------
+# Signal trap — salvage partial Codex output before dying
+# ---------------------------------------------------------------------------
+# When the script is killed (session cleanup, terminal close, manual kill),
+# the code AFTER the `codex exec` call never runs.  This trap extracts
+# whatever Codex produced from the log file and writes it to the report
+# so the caller gets something instead of an empty Response section.
+_extract_last_codex_turn() {
+  awk '
+    /^codex$/ { in_block=1; buf=""; next }
+    in_block && /^(exec$|user$)/ { in_block=0 }
+    in_block && /^web search:/ { in_block=0 }
+    in_block { buf = buf $0 "\n" }
+    END { printf "%s", buf }
+  ' "$1"
+}
+
+_on_signal() {
+  local sig="$1"
+  local exit_code=1
+  case "$sig" in
+    HUP)  exit_code=129 ;;
+    INT)  exit_code=130 ;;
+    TERM) exit_code=143 ;;
+  esac
+
+  {
+    echo
+    echo "---"
+    echo
+    echo "_**Script received SIG${sig}** — Codex did not complete normally._"
+    echo
+
+    # Tier 1: try the --output-last-message temp file
+    if [[ -s "${LAST_MSG:-}" ]]; then
+      echo "_Partial response recovered from last-message file:_"
+      echo
+      cat "$LAST_MSG"
+    # Tier 2: extract last codex text turn from the raw log
+    elif [[ -s "${LOG_FILE:-}" ]]; then
+      local partial
+      partial="$(_extract_last_codex_turn "$LOG_FILE")"
+      if [[ -n "$partial" ]]; then
+        echo "_Partial response recovered from log (last Codex text turn):_"
+        echo
+        printf '%s\n' "$partial"
+      else
+        local log_lines
+        log_lines="$(wc -l < "$LOG_FILE" | tr -d ' ')"
+        echo "_No text response found in log (${log_lines} lines captured)._"
+        echo "_Raw log preserved at \`${LOG_FILE}\`._"
+      fi
+    else
+      echo "_No log output captured — Codex may not have started._"
+    fi
+  } >> "${OUT_FILE:-/dev/null}" 2>/dev/null
+
+  # Stamp the sentinel so readers know the script was killed
+  sed -i '' 's/<!-- STATUS:RUNNING -->/<!-- STATUS:KILLED sig='"$sig"' -->/' \
+    "${OUT_FILE:-/dev/null}" 2>/dev/null
+
+  rm -f "${LAST_MSG:-}"
+  echo "${OUT_FILE:-}"
+  exit "$exit_code"
+}
+
+trap '_on_signal HUP'  SIGHUP
+trap '_on_signal INT'  SIGINT
+trap '_on_signal TERM' SIGTERM
+
 FULL_PROMPT="$PREAMBLE
 
 ---
@@ -250,6 +320,8 @@ fi
   echo
   echo "## Response"
   echo
+  echo "<!-- STATUS:RUNNING -->"
+  echo
 } > "$OUT_FILE"
 
 CODEX_CMD=(
@@ -283,24 +355,89 @@ else
   RUN=("${CODEX_CMD[@]}")
 fi
 
+# ---------------------------------------------------------------------------
+# Three-tier response extraction
+# ---------------------------------------------------------------------------
+# Tier 1: --output-last-message file (best — clean final text from Codex)
+# Tier 2: awk extraction of last "codex" text block from the raw log
+# Tier 3: jq extraction from session JSONL (~/.codex/sessions/)
+_try_log_extraction() {
+  [[ -s "$LOG_FILE" ]] || return 1
+  local text
+  text="$(_extract_last_codex_turn "$LOG_FILE")"
+  [[ -n "$text" ]] || return 1
+  printf '%s\n' "$text"
+}
+
+_try_session_jsonl() {
+  command -v jq >/dev/null 2>&1 || return 1
+  [[ -s "$LOG_FILE" ]] || return 1
+  local sid
+  sid="$(awk '/^session id: /{print $3; exit}' "$LOG_FILE")"
+  [[ -n "$sid" ]] || return 1
+  local sessions_dir="${CODEX_HOME:-$HOME/.codex}/sessions"
+  local jsonl
+  jsonl="$(find "$sessions_dir" -name "*${sid}*.jsonl" -type f 2>/dev/null | head -1)"
+  [[ -s "$jsonl" ]] || return 1
+  local text
+  text="$(jq -r '
+    select(.type == "response_item")
+    | .payload
+    | select(.type == "message" and .role == "assistant")
+    | .content[].text
+  ' "$jsonl" 2>/dev/null | tail -1)"
+  [[ -n "$text" ]] || return 1
+  printf '%s\n' "$text"
+}
+
 if "${RUN[@]}" > "$LOG_FILE" 2>&1; then
   if [[ -s "$LAST_MSG" ]]; then
     cat "$LAST_MSG" >> "$OUT_FILE"
     rm -f "$LAST_MSG"
   else
-    {
-      echo
-      echo "_Codex returned an empty last-message. Raw transcript preserved at \`$LOG_FILE\`._"
-    } >> "$OUT_FILE"
+    rm -f "$LAST_MSG"
+    RECOVERED=""
+    RECOVERY_SOURCE=""
+    RECOVERED="$(_try_log_extraction)" && RECOVERY_SOURCE="log"
+    if [[ -z "$RECOVERED" ]]; then
+      RECOVERED="$(_try_session_jsonl)" && RECOVERY_SOURCE="session JSONL"
+    fi
+    if [[ -n "$RECOVERED" ]]; then
+      {
+        echo "_Response recovered from ${RECOVERY_SOURCE} (--output-last-message was empty):_"
+        echo
+        printf '%s\n' "$RECOVERED"
+      } >> "$OUT_FILE"
+    else
+      {
+        echo
+        echo "_Codex returned an empty last-message and fallback extraction failed._"
+        echo "_Raw log preserved at \`$LOG_FILE\`._"
+      } >> "$OUT_FILE"
+    fi
   fi
+  sed -i '' 's/<!-- STATUS:RUNNING -->/<!-- STATUS:COMPLETE -->/' "$OUT_FILE"
   echo "$OUT_FILE"
   exit 0
 else
   STATUS=$?
+  RECOVERED=""
+  RECOVERY_SOURCE=""
+  RECOVERED="$(_try_log_extraction)" && RECOVERY_SOURCE="log"
+  if [[ -z "$RECOVERED" ]]; then
+    RECOVERED="$(_try_session_jsonl)" && RECOVERY_SOURCE="session JSONL"
+  fi
   {
     echo
-    echo "_**Codex invocation failed** (exit $STATUS). Raw stderr/stdout preserved at \`$LOG_FILE\`._"
+    if [[ -n "$RECOVERED" ]]; then
+      echo "_**Codex invocation failed** (exit $STATUS) — response recovered from ${RECOVERY_SOURCE}:_"
+      echo
+      printf '%s\n' "$RECOVERED"
+    else
+      echo "_**Codex invocation failed** (exit $STATUS). Raw stderr/stdout preserved at \`$LOG_FILE\`._"
+    fi
   } >> "$OUT_FILE"
+  sed -i '' 's/<!-- STATUS:RUNNING -->/<!-- STATUS:FAILED exit='"$STATUS"' -->/' "$OUT_FILE"
   rm -f "$LAST_MSG"
   echo "$OUT_FILE"
   exit 3
